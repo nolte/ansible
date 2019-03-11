@@ -329,10 +329,28 @@ def main():
             command.extend(_state_args(state_file))
     variables_args = []
     for k, v in variables.items():
-        variables_args.extend([
-            '-var',
-            '{0}={1}'.format(k, v)
-        ])
+        if isinstance(v,dict):
+            print("dict")
+        elif isinstance(v,list):
+            variables_list_args_join = str.join(",",v)
+            variables_list_args = []
+            for list_item in v:
+                variables_list_args.extend([
+                    "\"{0}\"".format(list_item)
+                ])
+
+            testStr = str.join(",",variables_list_args)
+            variables_args.extend([
+                '-var',
+                '{0}=[{1}]'.format(k, testStr)
+            ])
+
+            print("dict")
+        else:
+            variables_args.extend([
+                '-var',
+                '{0}={1}'.format(k, v)
+            ])
     if variables_file:
         variables_args.extend(['-var-file', variables_file])
 
