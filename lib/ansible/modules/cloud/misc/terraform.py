@@ -183,14 +183,44 @@ def preflight_validation(bin_path, project_path, variables_args=None, plan_file=
         module.fail_json(msg="Failed to validate Terraform configuration files:\r\n{0}".format(err))
 
 
-def _state_args(state_file, must_exists=True):
+def _state_args(state_file, project_path, must_exists=True):
     if state_file:
-        if must_exists and not os.path.exists(state_file):
-            module.fail_json(msg='Could not find state_file "{0}", check the path and try again.'.format(state_file))
+        if os.path.isabs(state_file):
+            check_path = state_file
+        if not os.path.isabs(state_file):
+            check_path = project_path + "/" + state_file
+        if must_exists and not os.path.exists(check_path):
+            module.fail_json(msg='Could not find state_file "{0}", check the path and try again.'.format(check_path))
         return ['-state', state_file]
     else:
         return []
 
+def convertPythonVarValueToTerraformVarCommandlineParameter(varValue):
+    if(isinstance(varValue, list)):
+        varstring = ""
+        listVars = []
+        for index,val in enumerate(varValue):
+            varstring = varstring + formatSimpleValue(val)
+
+            if index < (len(varValue) -1):
+                varstring = varstring + ","
+
+        return "["+varstring+"]"
+    elif(isinstance(varValue, dict)):
+        varstring = ""
+        i = 0
+        for k, v in varValue.items():
+            varstring = varstring +  k + " = " + formatSimpleValue(v)
+            if i < (len(varValue) -1):
+                varstring = varstring + ", "
+            i = i + 1
+
+        return "{ "+varstring+" }"
+    else:
+        return formatSimpleValue(varValue)
+
+def formatSimpleValue(singleValue):
+    return '\"'+str(singleValue)+'\"'
 
 def init_plugins(bin_path, project_path, backend_config):
     command = [bin_path, 'init', '-input=false']
@@ -251,7 +281,7 @@ def build_plan(command, project_path, variables_args, state_file, targets, state
     for t in (module.params.get('targets') or []):
         plan_command.extend(['-target', t])
 
-    plan_command.extend(_state_args(state_file, False))
+    plan_command.extend(_state_args(state_file, project_path, False))
 
     rc, out, err = module.run_command(plan_command + variables_args, cwd=project_path, use_unsafe_shell=True)
 
@@ -326,12 +356,13 @@ def main():
         command.extend(DESTROY_ARGS)
 
         if state_file:
-            command.extend(_state_args(state_file))
+            command.extend(_state_args(state_file, project_path))
+
     variables_args = []
     for k, v in variables.items():
         variables_args.extend([
             '-var',
-            '{0}={1}'.format(k, v)
+            '{0}={1}'.format(k, convertPythonVarValueToTerraformVarCommandlineParameter(v))
         ])
     if variables_file:
         variables_args.extend(['-var-file', variables_file])
@@ -381,7 +412,7 @@ def main():
                 command=' '.join(command)
             )
 
-    outputs_command = [command[0], 'output', '-no-color', '-json'] + _state_args(state_file, False)
+    outputs_command = [command[0], 'output', '-no-color', '-json'] + _state_args(state_file, project_path, False)
     rc, outputs_text, outputs_err = module.run_command(outputs_command, cwd=project_path)
     if rc == 1:
         module.warn("Could not get Terraform outputs. This usually means none have been defined.\nstdout: {0}\nstderr: {1}".format(outputs_text, outputs_err))
