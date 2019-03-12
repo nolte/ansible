@@ -327,17 +327,27 @@ def main():
 
         if state_file:
             command.extend(_state_args(state_file))
+            
     variables_args = []
     for k, v in variables.items():
         if isinstance(v,dict):
             print("dict")
+
         elif isinstance(v,list):
-            variables_list_args_join = str.join(",",v)
+            #variables_list_args = ""
             variables_list_args = []
-            for list_item in v:
-                variables_list_args.extend([
-                    "\"{0}\"".format(list_item)
-                ])
+            for  list_item in v:
+                if isinstance(list_item,str):
+                    variables_args.extend(['"\"{0}\"'.format(list_item)])
+                    #variables_list_args = str.join(",","\"{0}\"".format(list_item))
+                    #variables_list_args.extend([
+                    #    "\"{0}\"".format(list_item)
+                    #])
+                else:
+                    variables_args.extend(str(list_item))
+                    #variables_list_args = str.join(",",[str(list_item)])
+                    print("da")
+                    # variables_list_args[0] = list_item
 
             testStr = str.join(",",variables_list_args)
             variables_args.extend([
