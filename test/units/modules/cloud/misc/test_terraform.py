@@ -1,32 +1,7 @@
 import pytest
 
 
-def convertPythonVarValueToTerraformVarCommandlineParameter(varValue):
-    if(isinstance(varValue, list)):
-        varstring = ""
-        listVars = []
-        for index,val in enumerate(varValue):
-            varstring = varstring + formatSimpleValue(val)
-
-            if index < (len(varValue) -1):
-                varstring = varstring + ","
-
-        return "["+varstring+"]"
-    elif(isinstance(varValue, dict)):
-        varstring = ""
-        i = 0
-        for k, v in varValue.items():
-            varstring = varstring +  k + " = " + formatSimpleValue(v)
-            if i < (len(varValue) -1):
-                varstring = varstring + ", "
-            i = i + 1
-
-        return "{ "+varstring+" }"
-    else:
-        return formatSimpleValue(varValue)
-
-def formatSimpleValue(singleValue):
-    return '\"'+str(singleValue)+'\"'
+from ansible.modules.cloud.misc.terraform import convertPythonVarValueToTerraformVarCommandlineParameter
 
 testdata = [
     ("1",'"1"'),

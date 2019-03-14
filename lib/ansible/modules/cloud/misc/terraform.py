@@ -195,6 +195,32 @@ def _state_args(state_file, project_path, must_exists=True):
     else:
         return []
 
+def convertPythonVarValueToTerraformVarCommandlineParameter(varValue):
+    if(isinstance(varValue, list)):
+        varstring = ""
+        listVars = []
+        for index,val in enumerate(varValue):
+            varstring = varstring + formatSimpleValue(val)
+
+            if index < (len(varValue) -1):
+                varstring = varstring + ","
+
+        return "["+varstring+"]"
+    elif(isinstance(varValue, dict)):
+        varstring = ""
+        i = 0
+        for k, v in varValue.items():
+            varstring = varstring +  k + " = " + formatSimpleValue(v)
+            if i < (len(varValue) -1):
+                varstring = varstring + ", "
+            i = i + 1
+
+        return "{ "+varstring+" }"
+    else:
+        return formatSimpleValue(varValue)
+
+def formatSimpleValue(singleValue):
+    return '\"'+str(singleValue)+'\"'
 
 def init_plugins(bin_path, project_path, backend_config):
     command = [bin_path, 'init', '-input=false']
@@ -336,7 +362,7 @@ def main():
     for k, v in variables.items():
         variables_args.extend([
             '-var',
-            '{0}={1}'.format(k, v)
+            '{0}={1}'.format(k, convertPythonVarValueToTerraformVarCommandlineParameter(v))
         ])
     if variables_file:
         variables_args.extend(['-var-file', variables_file])
